@@ -16,17 +16,17 @@ const categories = ["취업/직무", "창업/사업", "주거/자립", "금융/�
 // 데이터 생성 함수
 function generatePolicyData(count) {
     const categoryMap = { "취업/직무": "job", "창업/사업": "startup", "주거/자립": "housing", "금융/생활비": "finance", "교육/자격증": "growth", "복지/문화": "welfare" };
-    const categoryCounters = {}; 
+    const categoryCounters = {};
 
     const data = [];
     for (let i = 1; i <= count; i++) {
         const randomCategory = categories[Math.floor(Math.random() * categories.length)];
-        
+
         if (categoryCounters[randomCategory] === undefined) categoryCounters[randomCategory] = 0;
         const imgNum = categoryCounters[randomCategory];
         const imgIndex = (imgNum % 5) + 1;
         categoryCounters[randomCategory]++;
-        
+
         const prefix = categoryMap[randomCategory] || "welfare";
         const localImage = `/static/images/card_images/${prefix}_${imgIndex}.webp`;
 
@@ -50,7 +50,7 @@ const myLikedData = generatePolicyData(5);
 // 카드 HTML 생성 함수
 function createCardHTML(item, isTinder = false) {
     const itemData = encodeURIComponent(JSON.stringify(item));
-    
+
     if (isTinder) {
         // [Tinder Card]
         const swipeIcons = `
@@ -138,15 +138,15 @@ class CardSwiper {
             const rotate = currentX * 0.05;
             card.style.transform = `translateX(${currentX}px) rotate(${rotate}deg)`;
             const opacity = Math.min(Math.abs(currentX) / 100, 1);
-            if (currentX > 0) { if(likeBadge) likeBadge.style.opacity = opacity; if(passBadge) passBadge.style.opacity = 0; } 
-            else { if(passBadge) passBadge.style.opacity = opacity; if(likeBadge) likeBadge.style.opacity = 0; }
+            if (currentX > 0) { if (likeBadge) likeBadge.style.opacity = opacity; if (passBadge) passBadge.style.opacity = 0; }
+            else { if (passBadge) passBadge.style.opacity = opacity; if (likeBadge) likeBadge.style.opacity = 0; }
         };
         const endDrag = () => {
             if (!isDragging) return;
             isDragging = false;
             card.style.transition = 'transform 0.3s ease';
-            if(likeBadge) likeBadge.style.opacity = 0;
-            if(passBadge) passBadge.style.opacity = 0;
+            if (likeBadge) likeBadge.style.opacity = 0;
+            if (passBadge) passBadge.style.opacity = 0;
             if (currentX > 150) this.swipeCard(card, 'right');
             else if (currentX < -150) this.swipeCard(card, 'left');
             else card.style.transform = 'translateX(0) rotate(0)';
@@ -176,167 +176,257 @@ window.openModal = function (itemDataEncoded) {
     try {
         const item = JSON.parse(decodeURIComponent(itemDataEncoded));
         const els = { title: document.getElementById('modal-title'), desc: document.getElementById('modal-desc'), img: document.getElementById('modal-img'), cate: document.getElementById('modal-category'), date: document.getElementById('modal-date') };
-        if(els.title) els.title.innerText = item.title;
-        if(els.desc) els.desc.innerText = item.desc;
-        if(els.img) els.img.src = item.image;
-        if(els.cate) els.cate.innerText = item.category;
-        if(els.date) els.date.innerText = item.date;
+        if (els.title) els.title.innerText = item.title;
+        if (els.desc) els.desc.innerText = item.desc;
+        if (els.img) els.img.src = item.image;
+        if (els.cate) els.cate.innerText = item.category;
+        if (els.date) els.date.innerText = item.date;
         policyModalEl.classList.remove('hidden');
         setTimeout(() => { policyModalEl.classList.add('active'); }, 10);
-    } catch(e) { console.error("Data Error:", e); }
+    } catch (e) { console.error("Data Error:", e); }
 };
 
 // ============================================================
-// [2] Controllers (Auth & Share)
+// [2] Controllers (Auth & Share) - ★ 진짜 서버 통신용 코드 ★
 // ============================================================
 
 const AuthController = {
-    targetRegionName: null,
-    targetCallback: null,
+    // [상태 관리]
+    currentRegion: null,
+    pendingCallback: null,
 
-    init: function() { this.bindGlobalEvents(); },
+    // 1. 초기화: 이벤트 위임 (버튼이 늦게 생겨도 무조건 클릭 감지)
+    init: function () {
+        document.addEventListener('click', (e) => {
+            // [수정] 클릭한 요소가 버튼 안의 아이콘(SVG)일 수도 있으니, 가장 가까운 ID 가진 요소를 찾습니다.
+            const target = e.target.closest('[id]');
+            if (!target) return; // ID 없는 빈 공간 클릭은 무시
 
-    open: function(mode = 'promo', regionName = null, count = 0, callback = null) {
-        const modal = document.getElementById('auth-modal');
-        if(!modal) return;
-        this.targetRegionName = regionName;
-        this.targetCallback = callback;
-        this.updateUI(mode, regionName, count);
-        modal.classList.remove('hidden');
-        setTimeout(() => {
-            modal.classList.remove('opacity-0');
-            const content = document.getElementById('auth-modal-content');
-            if(content) { content.classList.remove('scale-95'); content.classList.add('scale-100'); }
-        }, 10);
-    },
+            // (1) 가입 완료 버튼
+            if (target.id === 'btn-signup-submit') {
+                e.preventDefault();
+                this.handleSignup();
+            }
 
-    close: function() {
-        const modal = document.getElementById('auth-modal');
-        if(!modal) return;
-        modal.classList.add('opacity-0');
-        const content = document.getElementById('auth-modal-content');
-        if(content) { content.classList.remove('scale-100'); content.classList.add('scale-95'); }
-        setTimeout(() => { modal.classList.add('hidden'); }, 300);
-    },
+            // (2) 로그인 완료 버튼
+            if (target.id === 'btn-login-submit') {
+                e.preventDefault();
+                this.handleLogin();
+            }
 
-    updateUI: function(mode, regionName, count) {
-        const views = { promo: document.getElementById('auth-view-promo'), signup: document.getElementById('auth-view-signup'), login: document.getElementById('auth-view-login') };
-        Object.values(views).forEach(el => { if(el) el.classList.add('hidden'); });
+            // (3) 모달 닫기 버튼들 (이제 아이콘 눌러도 닫힘!)
+            if (target.id === 'btn-modal-close-icon' || target.id === 'btn-modal-browse') {
+                this.closeModal();
+            }
 
-        if(mode === 'login' && views.login) views.login.classList.remove('hidden');
-        else if(mode === 'signup' && views.signup) views.signup.classList.remove('hidden');
-        else if(views.promo) views.promo.classList.remove('hidden');
+            // (4) 뷰 전환 버튼들
+            if (['btn-promo-login', 'btn-goto-login'].includes(target.id)) this.switchView('login');
+            if (['btn-promo-signup', 'btn-goto-signup'].includes(target.id)) this.switchView('signup');
 
-        if(regionName) {
-            const title = document.getElementById('auth-promo-title');
-            const desc = document.getElementById('auth-promo-desc');
-            const badge = document.getElementById('signup-region-badge');
-            const badgeContainer = document.getElementById('signup-region-badge-container');
-            if(title) title.innerHTML = `<span class="text-[#4A9EA8]">${regionName}</span> 소식을<br>받아보시겠습니까?`;
-            if(desc) desc.innerHTML = `총 ${count ? count.toLocaleString() : 0}건의 청년 정책을<br>놓치지 말고 확인하세요.`;
-            if(badge) badge.innerText = regionName;
-            if(badgeContainer) badgeContainer.style.display = 'inline-flex';
-        } else {
-             const badgeContainer = document.getElementById('signup-region-badge-container');
-             if(badgeContainer) badgeContainer.style.display = 'none';
-        }
-    },
-
-    bindGlobalEvents: function() {
-        // 1. 트리거 버튼 (js-login-trigger) 이벤트 위임
-        document.body.addEventListener('click', (e) => {
+            // (5) 로그인 트리거 (class로 찾기)
             const trigger = e.target.closest('.js-login-trigger');
-            if(trigger) {
+            if (trigger) {
                 const mode = trigger.dataset.mode || 'login';
                 this.open(mode);
             }
         });
-
-        // 2. 모달 내부 버튼 이벤트
-        const closeBtn = document.getElementById('btn-modal-close-icon');
-        const browseBtn = document.getElementById('btn-modal-browse');
-        
-        const promoSignup = document.getElementById('btn-promo-signup');
-        const promoLogin = document.getElementById('btn-promo-login');
-        
-        const signupSubmit = document.getElementById('btn-signup-submit');
-        const loginSubmit = document.getElementById('btn-login-submit');
-
-        // [추가된 버튼들: 전환용]
-        const gotoSignup = document.getElementById('btn-goto-signup');
-        const gotoLogin = document.getElementById('btn-goto-login');
-
-        if(closeBtn) closeBtn.onclick = () => this.close();
-        if(browseBtn) browseBtn.onclick = () => {
-            this.close();
-            if(this.targetCallback) this.targetCallback(); 
-        };
-        
-        if(promoSignup) promoSignup.onclick = () => this.updateUI('signup', this.targetRegionName);
-        if(promoLogin) promoLogin.onclick = () => this.updateUI('login');
-        
-        // [새로 추가된 전환 이벤트]
-        if(gotoSignup) gotoSignup.onclick = () => this.updateUI('signup', this.targetRegionName);
-        if(gotoLogin) gotoLogin.onclick = () => this.updateUI('login');
-        
-        if(signupSubmit) signupSubmit.onclick = () => this.handleAuthSuccess('가입');
-        if(loginSubmit) loginSubmit.onclick = () => this.handleAuthSuccess('로그인');
     },
 
-    handleAuthSuccess: function(type) {
-        alert(`${type} 되었습니다!`);
-        localStorage.setItem('isLoggedIn', 'true');
-        const emailInput = document.getElementById('login-id') || document.getElementById('signup-id');
-        const email = (emailInput && emailInput.value) ? emailInput.value : 'user@sseuk.com';
-        localStorage.setItem('virtualUser', email);
-        this.close();
-        checkLoginState();
-        if(this.targetCallback) { this.targetCallback(); } else { location.reload(); }
+    // 2. 모달 열기
+    open: function (mode = 'promo', regionName = null, count = 0, callback = null) {
+        const modal = document.getElementById('auth-modal');
+        const modalContent = document.getElementById('auth-modal-content');
+        if (!modal) return;
+
+        this.currentRegion = regionName;
+        this.pendingCallback = callback;
+
+        // UI 텍스트 업데이트
+        const elements = {
+            badgeContainer: document.getElementById('signup-region-badge-container'),
+            badgeText: document.getElementById('signup-region-badge'),
+            title: document.getElementById('auth-promo-title'),
+            desc: document.getElementById('auth-promo-desc')
+        };
+
+        if (regionName) {
+            if (elements.badgeText) elements.badgeText.innerText = regionName;
+            if (elements.badgeContainer) elements.badgeContainer.style.display = 'inline-flex';
+            if (elements.title) elements.title.innerHTML = `<span class="text-[#4A9EA8]">${regionName}</span> 소식을<br>받아보시겠습니까?`;
+            if (elements.desc) elements.desc.innerHTML = `총 ${count ? count.toLocaleString() : 0}건의 청년 정책을<br>놓치지 말고 확인하세요.`;
+        } else {
+            if (elements.badgeContainer) elements.badgeContainer.style.display = 'none';
+        }
+
+        modal.classList.remove('hidden');
+        setTimeout(() => {
+            modal.classList.remove('opacity-0');
+            if (modalContent) {
+                modalContent.classList.remove('scale-95');
+                modalContent.classList.add('scale-100');
+            }
+        }, 10);
+
+        this.switchView(mode);
+    },
+
+    // 3. 모달 닫기
+    closeModal: function () {
+        const modal = document.getElementById('auth-modal');
+        const modalContent = document.getElementById('auth-modal-content');
+        if (!modal) return;
+
+        modal.classList.add('opacity-0');
+        if (modalContent) {
+            modalContent.classList.remove('scale-100');
+            modalContent.classList.add('scale-95');
+        }
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            document.querySelectorAll('.auth-input').forEach(input => input.value = '');
+        }, 300);
+    },
+
+    // 4. 화면 전환
+    switchView: function (viewName) {
+        ['promo', 'signup', 'login'].forEach(v => {
+            const el = document.getElementById(`auth-view-${v}`);
+            if (el) {
+                el.classList.add('hidden');
+                el.classList.remove('flex');
+            }
+        });
+        const target = document.getElementById(`auth-view-${viewName}`);
+        if (target) {
+            target.classList.remove('hidden');
+            target.classList.add('flex');
+        }
+    },
+
+    // 5. [API] 회원가입 처리 (★ 여기가 진짜 핵심입니다!)
+    handleSignup: async function () {
+        const email = document.getElementById('signup-id').value;
+        const password = document.getElementById('signup-pw').value;
+        const name = document.getElementById('signup-name').value;
+
+        if (!email || !password || !name) {
+            alert("모든 정보를 입력해주세요.");
+            return;
+        }
+
+        try {
+            // 진짜 서버로 데이터 전송!
+            const response = await fetch('/api/auth/signup', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    email: email,
+                    password: password,
+                    name: name,
+                    region: this.currentRegion
+                })
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                alert(`✅ 가입 성공: ${result.message}\n로그인 해주세요!`);
+                this.switchView('login');
+            } else {
+                alert(`❌ 가입 실패: ${result.detail}`);
+            }
+        } catch (error) {
+            console.error("통신 에러:", error);
+            alert("서버 연결 중 오류가 발생했습니다.");
+        }
+    },
+
+    // 6. [API] 로그인 처리 (★ 여기도 진짜!)
+    handleLogin: async function () {
+        const email = document.getElementById('login-id').value;
+        const password = document.getElementById('login-pw').value;
+
+        if (!email || !password) {
+            alert("아이디와 비밀번호를 입력해주세요.");
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: email, password: password })
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                localStorage.setItem('isLoggedIn', 'true');
+                localStorage.setItem('userEmail', result.user.email);
+                localStorage.setItem('userName', result.user.name);
+
+                alert(`${result.user.name}님 환영합니다!`);
+                this.closeModal();
+                checkLoginState();
+
+                if (this.pendingCallback) {
+                    this.pendingCallback();
+                } else {
+                    location.reload();
+                }
+            } else {
+                alert(`로그인 실패: ${result.detail}`);
+            }
+        } catch (error) {
+            console.error(error);
+            alert("서버 연결 중 오류가 발생했습니다.");
+        }
     }
 };
 
+// ShareController는 님이 올리신 코드 그대로 쓰셔도 됩니다.
 const ShareController = {
+    // ... (기존 코드 유지)
     el: document.getElementById('share-modal'),
     input: document.getElementById('share-url-input'),
     btnClose: document.getElementById('btn-share-close'),
     btnCopy: document.getElementById('btn-copy-url'),
 
-    init: function() { if (!this.el) return; this.bindEvents(); },
-    show: function() {
+    init: function () { if (!this.el) return; this.bindEvents(); },
+    show: function () {
         this.el.classList.remove('hidden');
-        if(this.input) this.input.value = window.location.href;
+        if (this.input) this.input.value = window.location.href;
         if (typeof gsap !== 'undefined') {
             gsap.to(this.el, { opacity: 1, duration: 0.3 });
-            const content = this.el.querySelector('div'); 
-            if(content) gsap.to(content, { scale: 1, duration: 0.3, ease: 'back.out(1.2)' });
+            const content = this.el.querySelector('div');
+            if (content) gsap.to(content, { scale: 1, duration: 0.3, ease: 'back.out(1.2)' });
         }
     },
-    hide: function() {
+    hide: function () {
         if (typeof gsap !== 'undefined') {
             const content = this.el.querySelector('div');
             gsap.to(this.el, { opacity: 0, duration: 0.2 });
-            if(content) {
-                gsap.to(content, { scale: 0.95, duration: 0.2, onComplete: () => { this.el.classList.add('hidden'); }});
+            if (content) {
+                gsap.to(content, { scale: 0.95, duration: 0.2, onComplete: () => { this.el.classList.add('hidden'); } });
             } else { setTimeout(() => this.el.classList.add('hidden'), 200); }
         } else { this.el.classList.add('hidden'); }
     },
-    copy: function() {
-        if(this.input) {
+    copy: function () {
+        if (this.input) {
             this.input.select();
             navigator.clipboard.writeText(this.input.value).then(() => {
                 alert("URL이 복사되었습니다! 🎉"); this.hide();
             }).catch(() => { alert("복사 실패."); });
         }
     },
-    bindEvents: function() {
-        if(this.btnClose) this.btnClose.onclick = () => this.hide();
-        if(this.btnCopy) this.btnCopy.onclick = () => this.copy();
-        this.el.addEventListener('click', (e) => { if(e.target === this.el) this.hide(); });
+    bindEvents: function () {
+        if (this.btnClose) this.btnClose.onclick = () => this.hide();
+        if (this.btnCopy) this.btnCopy.onclick = () => this.copy();
+        this.el.addEventListener('click', (e) => { if (e.target === this.el) this.hide(); });
     }
 };
 
-window.openAuthModal = function(mode, regionName, count, callback) { AuthController.open(mode, regionName, count, callback); };
-
+window.openAuthModal = function (mode, regionName, count, callback) { AuthController.open(mode, regionName, count, callback); };
 // ============================================================
 // [3] 초기화 및 메인 로직
 // ============================================================
@@ -365,14 +455,14 @@ function checkLoginState() {
             `;
         }
         const mobileLogout = document.getElementById('mobile-logout-area');
-        if(mobileLogout) mobileLogout.classList.remove('hidden');
-        
+        if (mobileLogout) mobileLogout.classList.remove('hidden');
+
         const introLoginBtn = document.getElementById('btn-intro-login');
-        if(introLoginBtn) introLoginBtn.style.display = 'none';
+        if (introLoginBtn) introLoginBtn.style.display = 'none';
     }
 }
 
-window.handleLogout = function() {
+window.handleLogout = function () {
     localStorage.removeItem('virtualUser');
     localStorage.removeItem('isLoggedIn');
     alert('로그아웃 되었습니다.');
@@ -389,24 +479,24 @@ document.addEventListener("DOMContentLoaded", () => {
     const closeBtn = document.getElementById('close-btn');
     const menuOverlay = document.getElementById('mobile-menu-overlay');
     const menuPanel = document.getElementById('mobile-menu-panel');
-    const openMenu = () => { if(!menuOverlay) return; menuOverlay.classList.remove('hidden'); setTimeout(() => { menuOverlay.classList.remove('opacity-0'); menuPanel.classList.remove('translate-x-full'); }, 10); document.body.classList.add('menu-open'); };
-    const closeMenu = () => { if(!menuOverlay) return; menuOverlay.classList.add('opacity-0'); menuPanel.classList.add('translate-x-full'); document.body.classList.remove('menu-open'); setTimeout(() => { menuOverlay.classList.add('hidden'); }, 300); };
-    
+    const openMenu = () => { if (!menuOverlay) return; menuOverlay.classList.remove('hidden'); setTimeout(() => { menuOverlay.classList.remove('opacity-0'); menuPanel.classList.remove('translate-x-full'); }, 10); document.body.classList.add('menu-open'); };
+    const closeMenu = () => { if (!menuOverlay) return; menuOverlay.classList.add('opacity-0'); menuPanel.classList.add('translate-x-full'); document.body.classList.remove('menu-open'); setTimeout(() => { menuOverlay.classList.add('hidden'); }, 300); };
+
     if (hamburgerBtn) hamburgerBtn.addEventListener('click', openMenu);
     if (closeBtn) closeBtn.addEventListener('click', closeMenu);
-    if (menuOverlay) menuOverlay.addEventListener('click', (e) => { if(e.target === menuOverlay) closeMenu(); });
-    
+    if (menuOverlay) menuOverlay.addEventListener('click', (e) => { if (e.target === menuOverlay) closeMenu(); });
+
     const mobileLogoutBtn = document.getElementById('logout-btn-mobile');
     if (mobileLogoutBtn) mobileLogoutBtn.addEventListener('click', window.handleLogout);
 
     const btnShare = document.getElementById('btn-share');
-    if(btnShare) btnShare.addEventListener('click', () => ShareController.show());
+    if (btnShare) btnShare.addEventListener('click', () => ShareController.show());
 
     // --------------------------------------------------------
     // [MAIN PAGE] Animation Logic
     // --------------------------------------------------------
     if (window.location.pathname.includes('main.html') || document.querySelector('.header-text')) {
-        
+
         window.initHeaderAnimation = () => {
             const headerTitle = document.querySelector('.header-text h1');
             const headerDesc = document.querySelector('.header-text p');
@@ -437,14 +527,14 @@ document.addEventListener("DOMContentLoaded", () => {
                     const animation = lottie.loadAnimation({ container: lottieContainer, renderer: 'svg', loop: false, autoplay: true, path: '/static/images/intro_animation.json' });
                     const finishLoading = () => {
                         const pl = document.getElementById("preloader");
-                        if(pl && typeof gsap !== 'undefined') { gsap.to(pl, { opacity: 0, duration: 0.5, onComplete: () => { pl.style.display="none"; window.playHeaderAnimation(); }}); } 
-                        else if (pl) { pl.style.display="none"; }
+                        if (pl && typeof gsap !== 'undefined') { gsap.to(pl, { opacity: 0, duration: 0.5, onComplete: () => { pl.style.display = "none"; window.playHeaderAnimation(); } }); }
+                        else if (pl) { pl.style.display = "none"; }
                     };
                     animation.addEventListener('complete', finishLoading);
                     animation.addEventListener('data_failed', finishLoading);
-                } catch(e) { console.log("Lottie Error"); }
-            } else { if(document.getElementById("preloader")) document.getElementById("preloader").style.display="none"; window.playHeaderAnimation(); }
-        } else { if(document.getElementById("preloader")) document.getElementById("preloader").style.display="none"; window.playHeaderAnimation(); }
+                } catch (e) { console.log("Lottie Error"); }
+            } else { if (document.getElementById("preloader")) document.getElementById("preloader").style.display = "none"; window.playHeaderAnimation(); }
+        } else { if (document.getElementById("preloader")) document.getElementById("preloader").style.display = "none"; window.playHeaderAnimation(); }
 
         // [애플 배너 복구]
         const icons = document.querySelectorAll('.cycling-icon');
@@ -454,9 +544,9 @@ document.addEventListener("DOMContentLoaded", () => {
             icons.forEach((icon, index) => {
                 const newText = icon.getAttribute('data-text');
                 iconTl.to(icon, { opacity: 1, scale: 1.2, duration: 0.5, ease: "back.out(1.7)" }, "start" + index)
-                      .to(keywordSpan, { opacity: 0, y: 10, duration: 0.2, onComplete: () => { keywordSpan.innerText = newText; } }, "start" + index)
-                      .to(keywordSpan, { opacity: 1, y: 0, duration: 0.3, ease: "power2.out" }, ">")
-                      .to(icon, { opacity: 0, scale: 0.8, duration: 0.3, delay: 1.5, ease: "power2.in" }, "end" + index);
+                    .to(keywordSpan, { opacity: 0, y: 10, duration: 0.2, onComplete: () => { keywordSpan.innerText = newText; } }, "start" + index)
+                    .to(keywordSpan, { opacity: 1, y: 0, duration: 0.3, ease: "power2.out" }, ">")
+                    .to(icon, { opacity: 0, scale: 0.8, duration: 0.3, delay: 1.5, ease: "power2.in" }, "end" + index);
             });
         }
 
@@ -465,7 +555,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const handIcon = document.getElementById('hand-icon');
         if (guideEl && handIcon && typeof gsap !== 'undefined' && typeof ScrollTrigger !== 'undefined') {
             gsap.to(handIcon, { x: -15, y: 10, rotation: -10, duration: 0.8, yoyo: true, repeat: -1, ease: "power1.inOut" });
-            ScrollTrigger.create({ trigger: ".tinder-section", start: "top 60%", once: true, onEnter: () => { if(guideEl.style.display !== 'none') gsap.to(guideEl, { autoAlpha: 1, duration: 0.5 }); } });
+            ScrollTrigger.create({ trigger: ".tinder-section", start: "top 60%", once: true, onEnter: () => { if (guideEl.style.display !== 'none') gsap.to(guideEl, { autoAlpha: 1, duration: 0.5 }); } });
             const hideGuide = () => { gsap.to(guideEl, { autoAlpha: 0, duration: 0.3, onComplete: () => { guideEl.style.display = 'none'; } }); };
             if (document.getElementById('tinder-list')) {
                 document.getElementById('tinder-list').addEventListener('mousedown', hideGuide, { once: true });
@@ -492,13 +582,13 @@ document.addEventListener("DOMContentLoaded", () => {
     // --------------------------------------------------------
     // [RENDERERS] Cards & MyPage
     // --------------------------------------------------------
-    
+
     // [수정 완료] 메인 슬라이드 2줄 렌더링
     const slideRow1 = document.getElementById('slide-row-1');
     const slideRow2 = document.getElementById('slide-row-2');
-    
+
     // 데이터 복제 (무한 스크롤용)
-    const infiniteData = [...allSlideData, ...allSlideData]; 
+    const infiniteData = [...allSlideData, ...allSlideData];
 
     if (slideRow1) {
         slideRow1.innerHTML = infiniteData.map(item => createCardHTML(item, false)).join('');
@@ -519,7 +609,7 @@ document.addEventListener("DOMContentLoaded", () => {
             mypageList.innerHTML = `<div class="empty-state"><i class="fa-regular fa-folder-open"></i><p>아직 찜한 정책이 없어요.</p></div>`;
         } else {
             mypageList.innerHTML = myLikedData.map(item => createCardHTML(item, false)).join('');
-            if(typeof gsap !== 'undefined' && typeof ScrollTrigger !== 'undefined') {
+            if (typeof gsap !== 'undefined' && typeof ScrollTrigger !== 'undefined') {
                 gsap.from("#mypage-list .policy-card", { y: 50, opacity: 0, duration: 0.6, stagger: 0.1, scrollTrigger: { trigger: "#mypage-list", start: "top 80%" } });
             }
         }
@@ -535,6 +625,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const pModal = document.getElementById('policy-modal');
     const pClose = document.getElementById('modal-close-btn');
-    if(pClose) pClose.onclick = () => { pModal.classList.remove('active'); setTimeout(()=>pModal.classList.add('hidden'),300); };
-    if(pModal) pModal.onclick = (e) => { if(e.target === pModal) { pModal.classList.remove('active'); setTimeout(()=>pModal.classList.add('hidden'),300); } };
+    if (pClose) pClose.onclick = () => { pModal.classList.remove('active'); setTimeout(() => pModal.classList.add('hidden'), 300); };
+    if (pModal) pModal.onclick = (e) => { if (e.target === pModal) { pModal.classList.remove('active'); setTimeout(() => pModal.classList.add('hidden'), 300); } };
 });
