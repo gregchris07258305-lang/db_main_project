@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STAYFOLIO MAGAZINE - DUG</title>
+    <style>
+        /* ------------------------------------------------------------------
+       1. VARIABLES & RESET
+    ------------------------------------------------------------------ */
+        :root {
+            --sf-font-base: "Pretendard JP Variable", "Pretendard", -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+            --sf-font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+
+            --color-black: #171717;
+            --color-dark-gray: #333333;
+            --color-gray: #666666;
+            --color-light-gray: #e5e5e5;
+            --color-bg-gray: #f7f7f7;
+            --color-white: #ffffff;
+
+            --spacing-desktop: 120px;
+            --spacing-mobile: 60px;
+            --container-width: 1200px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--sf-font-base);
+            color: var(--color-dark-gray);
+            line-height: 1.75;
+            word-break: keep-all;
+            -webkit-font-smoothing: antialiased;
+            background-color: var(--color-white);
+        }
+
+        img {
+            width: 100%;
+            display: block;
+            object-fit: cover;
+        }
+
+        h1,
+        h2,
+        h3,
+        h4 {
+            color: var(--color-black);
+            font-weight: 600;
+            letter-spacing: -0.02em;
+        }
+
+        .container {
+            max-width: var(--container-width);
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* ------------------------------------------------------------------
+       2. HEADER & HERO
+    ------------------------------------------------------------------ */
+        .hero-section {
+            padding: 100px 0 60px;
+            text-align: center;
+        }
+
+        .hero-label {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--color-gray);
+            letter-spacing: 0.1em;
+            margin-bottom: 20px;
+            display: block;
+            text-transform: uppercase;
+        }
+
+        .hero-title {
+            font-size: 3rem;
+            line-height: 1.2;
+            margin-bottom: 10px;
+        }
+
+        .hero-subtitle {
+            font-size: 1.2rem;
+            color: var(--color-gray);
+            font-weight: 400;
+            margin-bottom: 60px;
+        }
+
+        /* ------------------------------------------------------------------
+       3. MAGAZINE GRID LAYOUT (Why, People, Location, Space)
+    ------------------------------------------------------------------ */
+        .mag-section {
+            padding: var(--spacing-desktop) 0;
+            border-top: 1px solid var(--color-light-gray);
+        }
+
+        .mag-grid {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            /* Fixed Label width + Flexible Content */
+            gap: 60px;
+            align-items: start;
+        }
+
+        .mag-head {
+            position: sticky;
+            top: 40px;
+        }
+
+        .mag-label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--color-gray);
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-family: var(--sf-font-mono);
+        }
+
+        .mag-main-title {
+            font-size: 1.75rem;
+            line-height: 1.4;
+            color: var(--color-black);
+        }
+
+        .mag-content p {
+            font-size: 1.05rem;
+            color: var(--color-dark-gray);
+            margin-bottom: 24px;
+            text-align: justify;
+        }
+
+        .mag-image {
+            margin: 40px 0;
+            border-radius: 2px;
+            max-height: 600px;
+        }
+
+        /* ------------------------------------------------------------------
+       4. MENU SECTION (3 Column)
+    ------------------------------------------------------------------ */
+        .menu-section {
+            padding: var(--spacing-desktop) 0;
+            background-color: var(--color-bg-gray);
+        }
+
+        .menu-grid {
+            display: grid;
+            grid-template-columns: 1fr 1.5fr 1.5fr;
+            gap: 40px;
+        }
+
+        .menu-col-title h3 {
+            font-size: 1.5rem;
+            line-height: 1.3;
+        }
+
+        .menu-item {
+            margin-bottom: 40px;
+        }
+
+        .menu-item h4 {
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+            border-bottom: 1px solid var(--color-black);
+            padding-bottom: 10px;
+            display: inline-block;
+        }
+
+        .menu-item p {
+            font-size: 0.95rem;
+            color: var(--color-gray);
+        }
+
+        .menu-img-wrap img {
+            aspect-ratio: 1/1;
+            border-radius: 4px;
+        }
+
+        /* ------------------------------------------------------------------
+       5. EXPERIENCE SECTION (Brick Layout "ㄱ")
+    ------------------------------------------------------------------ */
+        .exp-section {
+            padding: var(--spacing-desktop) 0;
+        }
+
+        .exp-header {
+            margin-bottom: 40px;
+        }
+
+        /* The Brick Container */
+        .exp-brick-container {
+            position: relative;
+            width: 100%;
+            height: 700px;
+            /* Fixed height for the visual impact */
+            background-color: #000;
+        }
+
+        /* Background Image Slider */
+        .exp-bg-slider {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        .exp-img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0;
+            transition: opacity 0.8s ease-in-out;
+        }
+
+        .exp-img.active {
+            opacity: 1;
+        }
+
+        /* The White Brick (Content Box) */
+        .exp-brick-content {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 450px;
+            height: 400px;
+            /* Fixed height to create the rigid brick feel */
+            background-color: var(--color-white);
+            z-index: 10;
+            padding: 50px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            /* Shadow to emphasize the overlay/cutout effect */
+            box-shadow: -10px -10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .exp-time {
+            font-family: var(--sf-font-mono);
+            font-size: 3rem;
+            font-weight: 300;
+            color: var(--color-black);
+            display: block;
+            margin-bottom: 20px;
+        }
+
+        .exp-text-group h4 {
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+        }
+
+        .exp-text-group p {
+            font-size: 0.95rem;
+            color: var(--color-gray);
+            line-height: 1.6;
+        }
+
+        .exp-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .exp-btn {
+            background: none;
+            border: 1px solid var(--color-light-gray);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+
+        .exp-btn:hover {
+            border-color: var(--color-black);
+            background-color: var(--color-black);
+            color: #fff;
+        }
+
+        /* ------------------------------------------------------------------
+       6. POV SECTION
+    ------------------------------------------------------------------ */
+        .pov-section {
+            padding: var(--spacing-desktop) 0;
+            border-top: 1px solid var(--color-black);
+        }
+
+        .pov-title-area {
+            margin-bottom: 60px;
+        }
+
+        .pov-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 60px;
+        }
+
+        .pov-item h4 {
+            font-size: 1.25rem;
+            margin: 10px 0 15px;
+        }
+
+        .pov-label {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--color-gray);
+            letter-spacing: 0.1em;
+        }
+
+        /* ------------------------------------------------------------------
+       RESPONSIVE (Mobile)
+    ------------------------------------------------------------------ */
+        @media (max-width: 768px) {
+            .hero-title {
+                font-size: 2rem;
+            }
+
+            /* Stack Grids */
+            .mag-grid,
+            .menu-grid,
+            .pov-grid {
+                grid-template-columns: 1fr;
+                gap: 40px;
+            }
+
+            .mag-head {
+                position: static;
+            }
+
+            /* Mobile Experience Section */
+            .exp-brick-container {
+                height: auto;
+            }
+
+            .exp-bg-slider {
+                position: relative;
+                height: 300px;
+            }
+
+            .exp-brick-content {
+                position: relative;
+                width: 100%;
+                height: auto;
+                padding: 30px;
+                box-shadow: none;
+            }
+
+            .exp-time {
+                font-size: 2.5rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <section class="hero-section container">
+        <span class="hero-label">MAGAZINE</span>
+        <h1 class="hero-title">지하 벙커에서 마주한<br>재즈의 숲</h1>
+        <h3 class="hero-subtitle">DUG (Shinjuku, Tokyo)</h3>
+        <img src="https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?q=80&w=2070&auto=format&fit=crop"
+            style="height: 500px; margin-top: 40px;">
+    </section>
+
+    <section class="mag-section container">
+        <div class="mag-grid">
+            <div class="mag-head">
+                <span class="mag-label">WHY</span>
+                <h2 class="mag-main-title">소설의 문장을 넘어,<br>재즈의 물성을 탐닉하다</h2>
+            </div>
+            <div class="mag-content">
+                <p>무라카미 하루키의 소설 &lt;노르웨이의 숲&gt;에 등장하며 수많은 여행자의 발길을 이끈 곳, DUG. 하지만 이곳을 정의함에 있어 텍스트는 부차적일 뿐이다. 신주쿠의 화려한 네온
+                    사인을 뒤로하고 붉은 벽돌 계단을 내려가는 순간, 지상의 소음은 차단되고 오직 밀도 높은 재즈 선율만이 공기를 지배한다.</p>
+                <p>소설을 읽지 않았더라도 상관없다. 좁고 어두운 지하 벙커, 그 안을 가득 채운 트럼펫 소리와 사람들의 낮은 대화는 그 자체로 완성된 하나의 문학이다. 일상의 궤도에서 이탈해, 오롯이
+                    음악과 술, 그리고 자신에게 침잠하고 싶은 이들을 위한 도심 속 방공호. DUG의 이야기는 거기서 시작된다.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="mag-section container">
+        <div class="mag-grid">
+            <div class="mag-head">
+                <span class="mag-label">PEOPLE & MOOD</span>
+                <h2 class="mag-main-title">타인의 소음마저<br>배경이 되는 곳</h2>
+            </div>
+            <div class="mag-content">
+                <img src="https://images.unsplash.com/photo-1546707012-c46675f12716?q=80&w=2069&auto=format&fit=crop"
+                    class="mag-image">
+                <p>문을 열고 들어서면 가장 먼저 마주하는 것은 '밀도'다. 협소한 공간을 가득 메운 사람들의 열기, 묵묵히 샴페인 잔을 닦는 슬림 타이 차림의 직원, 구석 자리에서 노트북을 펴고
+                    무언가에 몰두한 이방인, 그리고 파이프 담배 연기를 뿜어내는 노신사까지.</p>
+                <p>각기 다른 목적을 가진 이들이 모여 있지만, 재즈라는 거대한 공통분모 아래 묘한 질서를 이룬다. 타인과의 거리가 가깝지만 불편하기보다 오히려 그 긴장감이 공간의 몰입도를 높인다.
+                    서로의 영역을 침범하지 않는 선에서 이루어지는 암묵적인 매너와 무심한 듯 정중한 환대는 이곳이 단순한 술집이 아닌, 재즈를 향유하는 살롱임을 증명한다.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="mag-section container">
+        <div class="mag-grid">
+            <div class="mag-head">
+                <span class="mag-label">LOCATION & SPACE</span>
+                <h2 class="mag-main-title">신주쿠의 소란을 등진<br>지하의 요새</h2>
+            </div>
+            <div class="mag-content">
+                <p>도쿄에서 가장 번잡한 거리 신주쿠. 수많은 인파와 소음이 뒤엉킨 도시의 표면과 달리, DUG가 위치한 지하는 완벽한 이면(裏面)의 세계다. 가파른 계단을 통해 지하로 내려가는 행위는
+                    마치 현실에서 비현실로 진입하는 의식(Ritual)과도 같다. 붉은 벽돌로 마감된 벽면은 외부의 빛과 소리를 철저히 차단하며, 방문객으로 하여금 시간의 흐름을 잊게 만든다. 도심
+                    한복판에 위치하지만 가장 깊은 고요와 격정을 동시에 품은 역설적인 공간이다.</p>
+
+                <h3 style="margin-top: 60px; margin-bottom: 20px; font-size: 1.5rem;">SPACE : 붉은 벽돌과 어둠, 그리고 음악</h3>
+                <p>DUG의 공간 미학은 '축적'에 있다. 1961년부터 쌓여온 시간의 흔적, 벽면을 가득 채운 재즈 뮤지션들의 흑백 사진, 그리고 조도 낮은 조명 아래 빛나는 위스키 병들의 반짝임.
+                    화려한 인테리어보다는 거친 물성의 벽돌과 나무 가구가 주는 묵직함이 공간을 누른다.</p>
+                <p>이곳의 주인공은 단연 음악이다. 고가의 오디오 시스템에서 뿜어져 나오는 사운드는 대화를 방해하지 않으면서도 공간의 구석구석을 빈틈없이 채운다. 시각적인 자극을 최소화하고 청각적
+                    경험을 극대화한 설계는 방문객이 오직 '듣는 행위'에 집중하게 만든다.</p>
+                <img src="https://images.unsplash.com/photo-1563823486047-380d603a111a?q=80&w=2070&auto=format&fit=crop"
+                    class="mag-image">
+            </div>
+        </div>
+    </section>
+
+    <section class="menu-section">
+        <div class="container menu-grid">
+            <div class="menu-col-title">
+                <span class="mag-label">MENU</span>
+                <h3>공간의 맛을<br>돋우는 한 잔</h3>
+            </div>
+            <div class="menu-col-list">
+                <div class="menu-item">
+                    <h4>Half & Half (Draft Beer)</h4>
+                    <p>에비스의 청량함과 흑맥주의 묵직함을 절반씩 섞었다. 탄산이 강하지 않아 목 넘김이 부드럽고, 맹맹한 듯하면서도 끝 맛에 감도는 쌉싸름함이 재즈의 선율과 닮았다. 화려한
+                        기교보다는 공간의 분위기에 자연스럽게 녹아드는 맛.</p>
+                </div>
+                <div class="menu-item">
+                    <h4>Balvenie (Whisky)</h4>
+                    <p>재즈바의 정석. 얼음이 녹으며 변해가는 위스키의 농도를 즐기는 것은 DUG에서의 시간을 측정하는 유일한 방법이다.</p>
+                </div>
+            </div>
+            <div class="menu-img-wrap">
+                <img src="https://images.unsplash.com/photo-1516280440614-6697288d5d38?q=80&w=2070&auto=format&fit=crop"
+                    alt="Menu Image">
+            </div>
+        </div>
+    </section>
+
+    <section class="exp-section">
+        <div class="container">
+            <div class="exp-header">
+                <span class="mag-label">EXPERIENCE</span>
+                <h2 class="mag-main-title">DUG에서의 3가지 시퀀스</h2>
+            </div>
+
+            <div class="exp-brick-container">
+                <div class="exp-bg-slider">
+                    <img src="https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?q=80&w=2070&auto=format&fit=crop"
+                        class="exp-img active" id="slide-img-0">
+                    <img src="https://images.unsplash.com/photo-1572116469696-31de0f17cc34?q=80&w=1974&auto=format&fit=crop"
+                        class="exp-img" id="slide-img-1">
+                    <img src="https://images.unsplash.com/photo-1662998342125-63799659b8a1?q=80&w=2070&auto=format&fit=crop"
+                        class="exp-img" id="slide-img-2">
+                </div>
+
+                <div class="exp-brick-content">
+                    <div id="exp-text-content">
+                        <span class="exp-time" id="exp-time">08:00 pm</span>
+                        <div class="exp-text-group">
+                            <h4 id="exp-title">지하 벙커로의 입장</h4>
+                            <p id="exp-desc">가파른 계단을 내려와 구석 자리에 몸을 구겨 넣는다. 옆 사람과의 거리가 가까워 순간 땀이 맺히지만, 이내 공간을 압도하는 트럼펫
+                                소리가 긴장을 잊게 한다.</p>
+                        </div>
+                    </div>
+                    <div class="exp-controls">
+                        <button class="exp-btn" onclick="nextSlide(-1)">&#10094;</button>
+                        <button class="exp-btn" onclick="nextSlide(1)">&#10095;</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="pov-section container">
+        <div class="pov-title-area">
+            <h2 class="mag-main-title">4 POINT OF VIEW</h2>
+        </div>
+        <div class="pov-grid">
+            <div class="pov-item">
+                <span class="pov-label">ORIGINALITY</span>
+                <h4>하루키가 사랑한 재즈의 성지</h4>
+                <p>소설 &lt;노르웨이의 숲&gt;의 배경이 되었다는 사실만으로도 방문할 가치는 충분하다. 하지만 그 명성에 기대지 않고 60년 넘게 지켜온 정통 재즈바로서의 정체성이 이곳을 더욱
+                    빛나게 한다.</p>
+            </div>
+            <div class="pov-item">
+                <span class="pov-label">DESIGN</span>
+                <h4>시간이 퇴적된 붉은 벽돌의 미학</h4>
+                <p>세련된 모던함과는 거리가 멀다. 투박한 벽돌과 낡은 나무, 낮은 조도가 만들어내는 느와르적 분위기는 최신 트렌드가 흉내 낼 수 없는 오리지널리티를 선사한다.</p>
+            </div>
+            <div class="pov-item">
+                <span class="pov-label">SOUND</span>
+                <h4>대화와 감상을 아우르는 음향의 균형</h4>
+                <p>너무 크지도, 작지도 않은 절묘한 볼륨. 음악을 감상하러 온 리스너와 대화를 나누러 온 방문객 모두를 만족시키는 사운드 밸런스가 탁월하다.</p>
+            </div>
+            <div class="pov-item">
+                <span class="pov-label">SOLITUDE</span>
+                <h4>군중 속의 고독을 즐길 권리</h4>
+                <p>'히토리(혼자)'라고 말해도 전혀 어색하지 않은 곳. 수많은 타인 속에 섞여 있지만 철저히 개인적인 시간을 보장받는, 도쿄 특유의 개인주의적 낭만을 경험할 수 있다.</p>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        /* EXPERIENCE SLIDER LOGIC */
+        const slides = [
+            {
+                time: "08:00 pm",
+                title: "지하 벙커로의 입장",
+                desc: "가파른 계단을 내려와 구석 자리에 몸을 구겨 넣는다. 옆 사람과의 거리가 가까워 순간 땀이 맺히지만, 이내 공간을 압도하는 트럼펫 소리가 긴장을 잊게 한다."
+            },
+            {
+                time: "09:00 pm",
+                title: "백색 소음과 자유",
+                desc: "Half & Half 맥주를 한 모금 들이켠다. 웅성거리는 사람들의 소음이 음악과 섞여 백색 소음(White Noise)처럼 편안해진다. 가방에서 책을 꺼냈지만, 글자를 읽는 대신 바텐더의 손짓을 멍하니 바라본다."
+            },
+            {
+                time: "10:00 pm",
+                title: "공간이 스며드는 시간",
+                desc: "차가운 맥주잔 표면에 맺힌 물방울이 책 표지 위로 떨어진다. 종이가 젖어가는 속도만큼 나의 시간도 이곳에 스며들었다. 비로소 도쿄라는 도시와 내가 하나가 되는 순간."
+            }
+        ];
+
+        let currentIndex = 0;
+
+        function nextSlide(direction) {
+            // Remove active class from current image
+            document.getElementById(`slide-img-${currentIndex}`).classList.remove('active');
+
+            // Calculate new index
+            currentIndex = (currentIndex + direction + slides.length) % slides.length;
+
+            // Add active class to new image
+            document.getElementById(`slide-img-${currentIndex}`).classList.add('active');
+
+            // Update Text Content with Fade Effect
+            const textContainer = document.getElementById('exp-text-content');
+            textContainer.style.opacity = 0;
+
+            setTimeout(() => {
+                document.getElementById('exp-time').innerText = slides[currentIndex].time;
+                document.getElementById('exp-title').innerText = slides[currentIndex].title;
+                document.getElementById('exp-desc').innerText = slides[currentIndex].desc;
+                textContainer.style.opacity = 1;
+            }, 300);
+        }
+
+        // Add transition style to text container
+        document.getElementById('exp-text-content').style.transition = "opacity 0.3s ease-in-out";
+    </script>
+</body>
+
+</html>

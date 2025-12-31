@@ -312,8 +312,8 @@
                             performTransition(() => { window.location.search = `?region=${regionId}`; });
                             return;
                         }
-
-                        if (isLoggedIn) {
+                        console.log("현재 로그인 상태:", isLoggedIn); // <--- 이 줄을 추가!
+                        if (localStorage.getItem('isLoggedIn') === 'true') {
                             performTransition(() => { window.location.href = targetUrl; });
                         } else {
                             if (window.openAuthModal) {

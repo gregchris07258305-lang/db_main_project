@@ -215,8 +215,15 @@ const AuthController = {
             }
 
             // (3) 모달 닫기 버튼들 (이제 아이콘 눌러도 닫힘!)
-            if (target.id === 'btn-modal-close-icon' || target.id === 'btn-modal-browse') {
+            if (target.id === 'btn-modal-close-icon') {
                 this.closeModal();
+            }
+            if (target.id === 'btn-modal-browse') {
+                this.closeModal();
+                // 💡 [핵심] 모달 닫은 뒤, 원래 하려던 동작(페이지 이동) 계속 진행
+                if (this.pendingCallback) {
+                    this.pendingCallback();
+                }
             }
 
             // (4) 뷰 전환 버튼들
@@ -427,14 +434,55 @@ const ShareController = {
 };
 
 window.openAuthModal = function (mode, regionName, count, callback) { AuthController.open(mode, regionName, count, callback); };
+
+// [NEW] Social Login Trigger (Global)
+window.socialLogin = function (provider) {
+    if (!['google', 'naver'].includes(provider)) return;
+    // 백엔드 EndPoint로 이동 -> 리다이렉트 -> 로그인 -> Callback -> 메인으로 복귀
+    window.location.href = `/api/auth/${provider}/login`;
+};
+
 // ============================================================
 // [3] 초기화 및 메인 로직
 // ============================================================
 
-function checkLoginState() {
-    const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
-    const userEmail = localStorage.getItem('virtualUser');
+async function checkLoginState() {
+    // [NEW] 0. OAuth 리다이렉트 복귀 처리 (URL 파라미터 확인)
+    const urlParams = new URLSearchParams(window.location.search);
+    const socialLogin = urlParams.get('social_login'); // success
 
+    if (socialLogin === 'success') {
+        const email = urlParams.get('email');
+        const name = urlParams.get('name');
+
+        if (email && name) {
+            // 로컬 스토리지 저장 (로그인 처리)
+            localStorage.setItem('isLoggedIn', 'true');
+            localStorage.setItem('userEmail', email);
+            localStorage.setItem('userName', name);
+
+            // 깔끔한 URL을 위해 파라미터 제거 (선택 사항)
+            window.history.replaceState({}, document.title, window.location.pathname);
+
+            alert(`${name}님, 소셜 로그인 성공! 환영합니다.`);
+
+            // [NEW] 메인 페이지로 이동
+            window.location.href = '/main.html';
+        }
+    }
+
+    // 1. 서버에 "나 로그인 맞아?" 물어보기
+    try {
+        const res = await fetch('/api/auth/verify');
+        if (!res.ok) {
+            // 서버가 "너 아닌데?"(401)라고 하면 청소!
+            localStorage.clear();
+            return; // 함수 종료
+        }
+    } catch (e) {
+        localStorage.clear();
+        return;
+    }
     if (isLoggedIn && userEmail) {
         const pcNavList = document.getElementById('pc-nav-list');
         if (pcNavList) {
